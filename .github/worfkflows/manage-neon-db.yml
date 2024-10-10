@@ -1,0 +1,42 @@
+name: Manage Neon Database
+
+# Ce workflow se déclenche à chaque push sur la branche "main"
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-db:
+    runs-on: ubuntu-latest
+    steps:
+      # Récupérer le code de votre dépôt
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Installer Node.js pour utiliser la CLI Neon
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      # Installer Neon CLI
+      - name: Install Neon CLI
+        run: npm install -g neonctl
+
+      # Installer le client PostgreSQL
+      - name: Install PostgreSQL Client
+        run: sudo apt-get install -y postgresql-client
+
+      # Créer la branche et la base de données sur Neon
+      - name: Create Neon Database
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
+          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name my_database
+
+      # Tester la connexion à la base de données
+      - name: Test Connection
+        run: |
+          psql "postgresql://username:password@host/my_database" -c "SELECT 'Connection successful!'"
