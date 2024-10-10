@@ -1,6 +1,6 @@
 name: Manage Neon Database
 
-# Ce workflow se déclenche à chaque push sur la branche "main"
+# This workflow triggers on every push to the "main" branch
 on:
   push:
     branches:
@@ -10,25 +10,25 @@ jobs:
   create-db:
     runs-on: ubuntu-latest
     steps:
-      # Récupérer le code de votre dépôt
+      # Checkout the code from your repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Installer Node.js pour utiliser la CLI Neon
+      # Set up Node.js (using the latest LTS version)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '20'  # Updated to Node.js 20 as required
 
-      # Installer Neon CLI
+      # Install Neon CLI
       - name: Install Neon CLI
         run: npm install -g neonctl
 
-      # Installer le client PostgreSQL
+      # Install PostgreSQL Client
       - name: Install PostgreSQL Client
         run: sudo apt-get install -y postgresql-client
 
-      # Créer la branche et la base de données sur Neon
+      # Create the branch and the database on Neon
       - name: Create Neon Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
@@ -36,7 +36,11 @@ jobs:
           neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
           neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name my_database
 
-      # Tester la connexion à la base de données
+      # Test the connection to the database
       - name: Test Connection
+        env:
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}  # Add your DB username to secrets
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}  # Add your DB password to secrets
+          DB_HOST: ${{ secrets.DB_HOST }}  # Add your DB host to secrets
         run: |
-          psql "postgresql://username:password@host/my_database" -c "SELECT 'Connection successful!'"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/my_database" -c "SELECT 'Connection successful!'"
