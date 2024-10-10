@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'  # Updated to Node.js 20 as required
+          node-version: "20" # Updated to Node.js 20 as required
 
       # Install Neon CLI
       - name: Install Neon CLI
@@ -33,8 +33,9 @@ jobs:
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
+          # Create a new branch and database on Neon
           neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
-          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name my_database
+          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
 
       # Test the connection to the database
       - name: Test Connection
@@ -43,4 +44,13 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}  # Add your DB password to secrets
           DB_HOST: ${{ secrets.DB_HOST }}  # Add your DB host to secrets
         run: |
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/my_database" -c "SELECT 'Connection successful!'"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
+
+      # Optionally, run SQL commands (create tables, etc.)
+      - name: Run SQL Commands
+        env:
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+        run: |
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
