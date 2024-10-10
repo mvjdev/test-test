@@ -12,7 +12,7 @@ jobs:
     steps:
       # Récupérer le code de votre dépôt
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       # Installer Node.js pour utiliser la CLI Neon
       - name: Set up Node.js
