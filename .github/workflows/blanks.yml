@@ -38,7 +38,5 @@ jobs:
 
       # Tester la connexion à la base de données
       - name: Test Connection
-        env:
-          DB_URL: ${{ steps.create-db.outputs.db_url }} # Assurez-vous que cette sortie est définie
         run: |
-          psql "$DB_URL" -c "SELECT 'Connection successful!'"
+          psql "postgresql://username:password@host/my_database" -c "SELECT 'Connection successful!'"
