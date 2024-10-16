@@ -43,7 +43,7 @@ jobs:
             neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
           fi
 
-      # Retrieve connection details for the development branchs
+      # Retrieve connection details for the development branch
       - name: Get Branch Details
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
