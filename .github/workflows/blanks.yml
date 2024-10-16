@@ -62,12 +62,16 @@ jobs:
             echo "branch-info.json was not created."
             exit 1
           fi
+          # Set DB_HOST variable directly from branch-info.json
           DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
+          echo "DB_HOST=$DB_HOST" # Log for debugging
+          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV  # Optionnel si vous souhaitez utiliser GITHUB_ENV
 
       # Create the database on the new branch
       - name: Create Neon Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
         run: |
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
           neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
@@ -77,7 +81,7 @@ jobs:
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: $DB_HOST  # Use DB_HOST directly
+          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
         run: |
           echo "Testing the connection to the database..."
           if psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"; then
@@ -92,7 +96,7 @@ jobs:
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: $DB_HOST  # Use DB_HOST directly
+          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
         run: |
           echo "Running SQL commands..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));" || { echo 'SQL command execution failed'; exit 1; }
