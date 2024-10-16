@@ -100,7 +100,7 @@ jobs:
             neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
           fi
 
-      # Test the connection to the new database
+      # Test the connection to the new databases
       - name: Test Connection
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
