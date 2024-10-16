@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20" # Updated to Node.js 20 as required
+          node-version: "20"
 
       # Install Neon CLI
       - name: Install Neon CLI
@@ -26,7 +26,7 @@ jobs:
 
       # Install PostgreSQL Client
       - name: Install PostgreSQL Client
-        run: sudo apt-get install -y postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
       # Create the branch and the database on Neon
       - name: Create Neon Database
@@ -40,17 +40,17 @@ jobs:
       # Test the connection to the database
       - name: Test Connection
         env:
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}  # Add your DB username to secrets
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}  # Add your DB password to secrets
-          DB_HOST: ${{ secrets.DB_HOST }}  # Add your DB host to secrets
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ secrets.DB_HOST }}
         run: |
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "SELECT 'Connection successful!'"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Optionally, run SQL commands (create tables, etc.)
-      - name: Run SQL Commands
+      # Run the SQL file
+      - name: Run SQL File
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
         run: |
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE TABLE maybe (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -f ./init_db.sql
