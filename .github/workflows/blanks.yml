@@ -36,7 +36,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}  # Add your DB password to secrets
           DB_HOST: ${{ secrets.DB_HOST }}  # Add your DB host to secrets
         run: |
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/coucou" -c "SELECT 'Connection successful!'"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "SELECT 'Connection successful!'"
 
       # Optionally, run SQL commands (create tables, etc.)
       - name: Run SQL Commands
