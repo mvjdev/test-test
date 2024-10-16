@@ -45,10 +45,10 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         id: get-branch
         run: |
-          echo "Retrieving details for branch 'development2'..."
+          echo "Retrieving details for branch 'development'..."
           
           # Try to get the branch details and check for errors
-          BRANCH_INFO=$(neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2 --output json)
+          BRANCH_INFO=$(neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json)
           
           if [ $? -ne 0 ]; then
             echo "Failed to retrieve branch details."
