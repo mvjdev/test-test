@@ -6,18 +6,18 @@ on:
       - main
 
 jobs:
-  manage-db:
+  create-db:
     runs-on: ubuntu-latest
     steps:
       # Checkout the code from your repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Node.js (using Node.js 20)
+      # Set up Node.js (using the latest LTS version)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"  # Assurez-vous d'utiliser la version 20
+          node-version: "20"
 
       # Install Neon CLI
       - name: Install Neon CLI
@@ -32,18 +32,12 @@ jobs:
         run: sudo apt-get install -y jq
 
       # Create or use the 'development' branch on Neon
-      - name: Ensure Neon Branch Exists
+      - name: Create Neon Branch
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
-          echo "Checking if branch 'development' exists..."
-          BRANCH_EXISTS=$(neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json | jq -r '.name // empty')
-          if [ -z "$BRANCH_EXISTS" ]; then
-            echo "Branch 'development' does not exist. Creating it..."
-            neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
-          else
-            echo "Branch 'development' already exists."
-          fi
+          echo "Creating or using the branch named 'development2'..."
+          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2 || echo "Branch 'development2' already exists."
 
       # Retrieve connection details for the development branch
       - name: Get Branch Details
@@ -51,13 +45,14 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         id: get-branch
         run: |
-          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json
+          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2 --output json > branch-info.json
           DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
 
       # Check if the 'ecommerce' database exists, if not, create it
-      - name: Ensure Database Exists
+      - name: Create Neon Database if not exists
         env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ env.DB_HOST }}
@@ -65,7 +60,7 @@ jobs:
           echo "Checking if database 'ecommerce' exists..."
           DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
           if [ "$DB_EXISTS" != "1" ]; then
-            echo "Database 'ecommerce' does not exist. Creating it..."
+            echo "Creating database 'ecommerce'..."
             psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE DATABASE ecommerce;"
           else
             echo "Database 'ecommerce' already exists."
@@ -81,7 +76,7 @@ jobs:
           echo "Testing the connection to the 'ecommerce' database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Run SQL commands (create tables, etc.)
+      # Optionally, run SQL commands (create tables, etc.)
       - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
