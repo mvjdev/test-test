@@ -28,32 +28,40 @@ jobs:
       - name: Install PostgreSQL Client
         run: sudo apt-get install -y postgresql-client
 
-      # Create the branch and the database on Neon
+      # Create the branch and database on Neon
       - name: Create Neon Branch and Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating a new branch named 'development'..."
-          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development || exit 1
+          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
 
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce || exit 1
+          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
+
+          echo "Retrieving connection string for the new branch..."
+          neonctl get-branch-info --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --output json > branch-info.json
+
+          # Extract the host from the JSON output
+          DB_HOST=$(jq -r '.branch.connectionString' branch-info.json)
+          echo "Host for the new branch: $DB_HOST"
 
       # Test the connection to the new database
       - name: Test Connection
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_HOST: ${{ steps.create-db.outputs.DB_HOST }}
         run: |
           echo "Testing the connection to the database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Run the SQL file
-      - name: Run SQL File
+      # Optionally, run SQL commands (create tables, etc.)
+      - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_HOST: ${{ steps.create-db.outputs.DB_HOST }}
         run: |
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -f ./init_db.sql
+          echo "Running SQL commands..."
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
