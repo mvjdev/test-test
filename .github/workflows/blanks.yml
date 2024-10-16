@@ -34,10 +34,10 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating a new branch named 'development'..."
-          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
+          neonctl create branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
 
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
+          neonctl create database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
 
           echo "Retrieving connection string for the new branch..."
           neonctl get-branch-info --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --output json > branch-info.json
