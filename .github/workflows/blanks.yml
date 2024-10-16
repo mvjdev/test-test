@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Node.js (using the latest LTS version)
+      # Set up Node.js (using Node.js 20)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -37,7 +37,11 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating or using the branch named 'development2'..."
-          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2 || echo "Branch 'development2' already exists."
+          if neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2 --output json; then
+            echo "Branch 'development2' already exists."
+          else
+            neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development2
+          fi
 
       # Retrieve connection details for the development branch
       - name: Get Branch Details
@@ -61,7 +65,7 @@ jobs:
           DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
           if [ "$DB_EXISTS" != "1" ]; then
             echo "Creating database 'ecommerce'..."
-            psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE DATABASE ecommerce;"
+            psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE DATABASE ecommerce;"
           else
             echo "Database 'ecommerce' already exists."
           fi
