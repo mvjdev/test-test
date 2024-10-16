@@ -37,7 +37,7 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating a new branch named 'development'..."
-          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
+          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development || { echo 'Branch creation failed'; exit 1; }
 
       # Retrieve connection details for the new branch
       - name: Get Branch Details
@@ -55,7 +55,7 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce
+          neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
 
       # Test the connection to the new database
       - name: Test Connection
@@ -65,7 +65,12 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Testing the connection to the database..."
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
+          if psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"; then
+            echo "Connection successful!"
+          else
+            echo "Connection failed!"
+            exit 1
+          fi
 
       # Optionally, run SQL commands (create tables, etc.)
       - name: Run SQL Commands
@@ -75,4 +80,4 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Running SQL commands..."
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));" || { echo 'SQL command execution failed'; exit 1; }
