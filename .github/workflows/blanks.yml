@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Node.js (using Node.js 20)
+      # Set up Node.js (using the latest LTS version)
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
@@ -37,11 +37,7 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating or using the branch named 'development'..."
-          if neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json; then
-            echo "Branch 'development' already exists."
-          else
-            neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
-          fi
+          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development || echo "Branch 'development' already exists."
 
       # Retrieve connection details for the development branch
       - name: Get Branch Details
@@ -49,16 +45,9 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         id: get-branch
         run: |
-          echo "Retrieving details for branch 'development'..."
-          if neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json; then
-            echo "Branch details retrieved successfully."
-            DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
-            echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
-          else
-            echo "Failed to retrieve branch details."
-            exit 1
-          fi
-
+          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json
+          DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
+          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
 
       # Check if the 'ecommerce' database exists, if not, create it
       - name: Create Neon Database if not exists
@@ -69,7 +58,7 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Checking if database 'ecommerce' exists..."
-          DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
+          DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
           if [ "$DB_EXISTS" != "1" ]; then
             echo "Creating database 'ecommerce'..."
             psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE DATABASE ecommerce;"
@@ -87,7 +76,7 @@ jobs:
           echo "Testing the connection to the 'ecommerce' database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Optionally, run SQL commands (create tables, etc...)
+      # Optionally, run SQL commands (create tables, etc.)
       - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
