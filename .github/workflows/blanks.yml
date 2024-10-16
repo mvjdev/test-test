@@ -67,14 +67,38 @@ jobs:
           echo "DB_HOST=$DB_HOST" # Log for debugging
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV  # Optionnel si vous souhaitez utiliser GITHUB_ENV
 
-      # Create the database on the new branch
+            # Create the database on the new branch
       - name: Create Neon Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
         run: |
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
+          echo "Using the following parameters:"
+          echo "Project ID: ${{ secrets.NEON_PROJECT_ID }}"
+          echo "Branch Name: development"
+          echo "Database Name: ecommerce"
+
+          # Tentative de création de la base de données
+          if neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce; then
+            echo "Database 'ecommerce' created successfully."
+          else
+            echo "Database creation failed!"
+            exit 1
+          fi
+            # Check if the database already exists
+      - name: Check if Database Exists
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
+        run: |
+          echo "Checking if database 'ecommerce' already exists..."
+          if neon databases list --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development | grep ecommerce; then
+            echo "Database 'ecommerce' already exists."
+          else
+            echo "Database 'ecommerce' does not exist, creating now..."
+            neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
+          fi
 
       # Test the connection to the new database
       - name: Test Connection
