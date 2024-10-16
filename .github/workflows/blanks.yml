@@ -38,35 +38,7 @@ jobs:
         run: |
           echo "Creating or using the branch named 'development'..."
           neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development || echo "Branch 'development' already exists."
-
-      # Retrieve connection details for the development branch
-      - name: Get Branch Details
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        id: get-branch
-        run: |
-          echo "Retrieving details for branch 'development'..."
           
-          # Try to get the branch details and check for errors
-          BRANCH_INFO=$(neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json)
-          
-          if [ $? -ne 0 ]; then
-            echo "Failed to retrieve branch details."
-            exit 1
-          fi
-
-          # If successful, write the output to a file and set DB_HOST
-          echo "$BRANCH_INFO" > branch-info.json
-          DB_HOST=$(echo "$BRANCH_INFO" | jq -r '.branch_proxy_host')
-          
-          if [ -z "$DB_HOST" ]; then
-            echo "DB_HOST is empty. Cannot proceed."
-            exit 1
-          fi
-
-          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
-
-
       # Check if the 'ecommerce' database exists, if not, create it
       - name: Create Neon Database if not exists
         env:
