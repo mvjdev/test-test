@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  create-db:
+  manage-db:
     runs-on: ubuntu-latest
     steps:
       # Checkout the code from your repository
@@ -33,12 +33,18 @@ jobs:
         run: sudo apt-get install -y jq
 
       # Create or use the 'development' branch on Neon
-      - name: Create Neon Branch
+      - name: Ensure Neon Branch Exists
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
-          echo "Creating or using the branch named 'development'..."
-          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development || echo "Branch 'development' already exists."
+          echo "Checking if branch 'development' exists..."
+          BRANCH_EXISTS=$(neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json | jq -r '.name // empty')
+          if [ -z "$BRANCH_EXISTS" ]; then
+            echo "Branch 'development' does not exist. Creating it..."
+            neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
+          else
+            echo "Branch 'development' already exists."
+          fi
 
       # Retrieve connection details for the development branch
       - name: Get Branch Details
@@ -51,9 +57,8 @@ jobs:
           echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
 
       # Check if the 'ecommerce' database exists, if not, create it
-      - name: Create Neon Database if not exists
+      - name: Ensure Database Exists
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ env.DB_HOST }}
@@ -61,7 +66,7 @@ jobs:
           echo "Checking if database 'ecommerce' exists..."
           DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
           if [ "$DB_EXISTS" != "1" ]; then
-            echo "Creating database 'ecommerce'..."
+            echo "Database 'ecommerce' does not exist. Creating it..."
             psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE DATABASE ecommerce;"
           else
             echo "Database 'ecommerce' already exists."
@@ -77,7 +82,7 @@ jobs:
           echo "Testing the connection to the 'ecommerce' database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Optionally, run SQL commands (create tables, etc.)
+      # Run SQL commands (create tables, etc.)
       - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
