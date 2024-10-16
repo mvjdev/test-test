@@ -46,5 +46,5 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
         run: |
           echo "Running SQL commands from init_db.sql..."
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -f init_db.sql
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -f sql/init_db.sql
 
