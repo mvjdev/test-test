@@ -26,24 +26,27 @@ jobs:
 
       # Install PostgreSQL Client
       - name: Install PostgreSQL Client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get install -y postgresql-client
 
       # Create the branch and the database on Neon
-      - name: Create Neon Database
+      - name: Create Neon Branch and Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
-          # Create a new branch and database on Neon
-          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
-          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
+          echo "Creating a new branch named 'development'..."
+          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development || exit 1
 
-      # Test the connection to the database
+          echo "Creating a new database named 'ecommerce' on branch 'development'..."
+          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce || exit 1
+
+      # Test the connection to the new database
       - name: Test Connection
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_HOST: ${{ secrets.DB_HOST }}
         run: |
+          echo "Testing the connection to the database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
       # Run the SQL file
