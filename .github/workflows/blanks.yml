@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  create-db:
+  manage-db:
     runs-on: ubuntu-latest
     steps:
       # Checkout the code from your repository
