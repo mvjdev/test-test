@@ -4,7 +4,7 @@ CREATE TABLE products_test (
     price DECIMAL(10, 2)
 );
 
-INSERT INTO products (name, price) VALUES
+INSERT INTO products_test (name, price) VALUES
 ('Product 1', 19.99),
 ('Product 2', 29.99);
 ('Product 3', 29.99);
