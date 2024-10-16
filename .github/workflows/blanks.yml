@@ -1,5 +1,6 @@
 name: Manage Neon Database
 
+# This workflow triggers on every push to the "main" branch
 on:
   push:
     branches:
@@ -17,110 +18,39 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: "20" # Updated to Node.js 20 as required
 
       # Install Neon CLI
       - name: Install Neon CLI
         run: npm install -g neonctl
 
-      # Check Neon CLI version
-      - name: Check Neon CLI Version
-        run: neonctl --version
-
       # Install PostgreSQL Client
       - name: Install PostgreSQL Client
         run: sudo apt-get install -y postgresql-client
 
-      # Install jq for JSON parsing
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
-      # Create the branch on Neon
-      - name: Create Neon Branch
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        run: |
-          echo "Creating a new branch named 'development'..."
-          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development || { echo 'Branch creation failed'; exit 1; }
-
-      # Retrieve connection details for the new branch
-      - name: Get Branch Details
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        id: get-branch
-        run: |
-          echo "Getting branch details..."
-          if [[ -z "${{ secrets.NEON_PROJECT_ID }}" ]]; then
-            echo "NEON_PROJECT_ID is not set."
-            exit 1
-          fi
-          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json || { echo 'Failed to get branch details'; exit 1; }
-          if [ -f branch-info.json ]; then
-            echo "branch-info.json created successfully."
-            cat branch-info.json  # Output the content for debugging
-          else
-            echo "branch-info.json was not created."
-            exit 1
-          fi
-          # Set DB_HOST variable directly from branch-info.json
-          DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
-          echo "DB_HOST=$DB_HOST" # Log for debugging
-          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV  # Optionnel si vous souhaitez utiliser GITHUB_ENV
-
-            # Create the database on the new branch
+      # Create the branch and the database on Neon
       - name: Create Neon Database
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
         run: |
-          echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          echo "Using the following parameters:"
-          echo "Project ID: ${{ secrets.NEON_PROJECT_ID }}"
-          echo "Branch Name: development"
-          echo "Database Name: ecommerce"
+          # Create a new branch and database on Neon
+          neonctl create-branch --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
+          neonctl create-database --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
 
-          # Tentative de création de la base de données
-          if neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce; then
-            echo "Database 'ecommerce' created successfully."
-          else
-            echo "Database creation failed!"
-            exit 1
-          fi
-            # Check if the database already exists
-      - name: Check if Database Exists
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
-        run: |
-          echo "Checking if database 'ecommerce' already exists..."
-          if neon databases list --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development | grep ecommerce; then
-            echo "Database 'ecommerce' already exists."
-          else
-            echo "Database 'ecommerce' does not exist, creating now..."
-            neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce || { echo 'Database creation failed'; exit 1; }
-          fi
-
-      # Test the connection to the new databases
+      # Test the connection to the database
       - name: Test Connection
         env:
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}  # Add your DB username to secrets
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}  # Add your DB password to secrets
+          DB_HOST: ${{ secrets.DB_HOST }}  # Add your DB host to secrets
         run: |
-          echo "Testing the connection to the database..."
-          if psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"; then
-            echo "Connection successful!"
-          else
-            echo "Connection failed!"
-            exit 1
-          fi
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "SELECT 'Connection successful!'"
 
       # Optionally, run SQL commands (create tables, etc.)
       - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ steps.get-branch.outputs.DB_HOST }}  # Utilisez DB_HOST de l'étape précédente
+          DB_HOST: ${{ secrets.DB_HOST }}
         run: |
-          echo "Running SQL commands..."
-          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));" || { echo 'SQL command execution failed'; exit 1; }
+          psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
