@@ -80,7 +80,7 @@ jobs:
           echo "Testing the connection to the 'ecommerce' database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
 
-      # Optionally, run SQL commands (create tables, etc.)
+      # Optionally, run SQL commands (create tables, etc...)
       - name: Run SQL Commands
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
