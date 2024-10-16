@@ -28,30 +28,42 @@ jobs:
       - name: Install PostgreSQL Client
         run: sudo apt-get install -y postgresql-client
 
-      # Create the branch and database on Neon
-      - name: Create Neon Branch and Database
+      # Install jq for JSON parsing
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      # Create the branch on Neon
+      - name: Create Neon Branch
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           echo "Creating a new branch named 'development'..."
-          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development
+          neon branches create --project-id ${{ secrets.NEON_PROJECT_ID }} --name development
 
+      # Retrieve connection details for the new branch
+      - name: Get Branch Details
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        id: get-branch
+        run: |
+          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json
+          DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
+          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
+
+      # Create the database on the new branch
+      - name: Create Neon Database
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
           echo "Creating a new database named 'ecommerce' on branch 'development'..."
-          neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --database-name ecommerce
-
-          echo "Retrieving connection string for the new branch..."
-          neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --output json > branch-info.json
-
-          # Extract the host from the JSON output
-          DB_HOST=$(jq -r '.branch.connectionString' branch-info.json)
-          echo "Host for the new branch: $DB_HOST"
+          neon databases create --project-id ${{ secrets.NEON_PROJECT_ID }} --branch-name development --name ecommerce
 
       # Test the connection to the new database
       - name: Test Connection
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ steps.create-db.outputs.DB_HOST }}
+          DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Testing the connection to the database..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"
@@ -61,7 +73,7 @@ jobs:
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ steps.create-db.outputs.DB_HOST }}
+          DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Running SQL commands..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));"
