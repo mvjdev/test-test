@@ -64,7 +64,7 @@ jobs:
           DB_HOST: ${{ env.DB_HOST }}
         run: |
           echo "Checking if database 'ecommerce' exists..."
-          DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -tAc "SELECT 1 FROM pg_database WHERE datname='ecommerce'")
+          DB_EXISTS=$(psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -tAc "SELECT 1 FROM pg_database WHERE databasename='ecommerce'")
           if [ "$DB_EXISTS" != "1" ]; then
             echo "Database 'ecommerce' does not exist. Creating it..."
             psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/neondb" -c "CREATE DATABASE ecommerce;"
