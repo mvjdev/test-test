@@ -50,6 +50,10 @@ jobs:
         id: get-branch
         run: |
           echo "Getting branch details..."
+          if [[ -z "${{ secrets.NEON_PROJECT_ID }}" ]]; then
+            echo "NEON_PROJECT_ID is not set."
+            exit 1
+          fi
           neon branches get --project-id ${{ secrets.NEON_PROJECT_ID }} --name development --output json > branch-info.json || { echo 'Failed to get branch details'; exit 1; }
           if [ -f branch-info.json ]; then
             echo "branch-info.json created successfully."
@@ -59,7 +63,6 @@ jobs:
             exit 1
           fi
           DB_HOST=$(jq -r '.branch_proxy_host' branch-info.json)
-          echo "DB_HOST=$DB_HOST" >> $GITHUB_ENV
 
       # Create the database on the new branch
       - name: Create Neon Database
@@ -74,7 +77,7 @@ jobs:
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ env.DB_HOST }}
+          DB_HOST: $DB_HOST  # Use DB_HOST directly
         run: |
           echo "Testing the connection to the database..."
           if psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "SELECT 'Connection successful!'"; then
@@ -89,7 +92,7 @@ jobs:
         env:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_HOST: ${{ env.DB_HOST }}
+          DB_HOST: $DB_HOST  # Use DB_HOST directly
         run: |
           echo "Running SQL commands..."
           psql "postgresql://${{ env.DB_USERNAME }}:${{ env.DB_PASSWORD }}@${{ env.DB_HOST }}/ecommerce" -c "CREATE TABLE IF NOT EXISTS products (id SERIAL PRIMARY KEY, name VARCHAR(100), price DECIMAL(10, 2));" || { echo 'SQL command execution failed'; exit 1; }
